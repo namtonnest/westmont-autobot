@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toronto Auto Sales | Inventory Bot</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Chat Area */
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.4; }
+        .bot { background: white; align-self: flex-start; border: 1px solid #ddd; color: #333; }
+        .user { background: var(--primary); color: white; align-self: flex-end; }
+        
+        /* Input Area */
+        .input-area { background: white; padding: 20px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { background: var(--secondary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* Car Card styling for the Bot */
+        .car-card { border-left: 4px solid var(--secondary); margin-top: 10px; padding-left: 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Toronto Auto Sales</h1>
+    <p>Inventory Assistant v1.0</p>
+</header>
+
+<div id="chat-container">
+    <div class="message bot">
+        Hello! I'm your AI inventory assistant. You can ask me things like "Show me SUVs" or "What is your cheapest car?"
+    </div>
+</div>
+
+<div class="input-area">
+    <input type="text" id="userInput" placeholder="Type your question here..." onkeypress="handleKey(event)">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    const inventory = [
+        { year: 2016, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, highlights: "S-Line, One Owner" },
+        { year: 2016, make: "Mazda", model: "CX-3", type: "SUV", price: 12900, km: 190000, highlights: "Clean Carfax" },
+        { year: 2016, make: "Nissan", model: "Rogue", type: "SUV", price: 11900, km: 127000, highlights: "SL Trim, Low KM" },
+        { year: 2015, make: "Audi", model: "Q3", type: "SUV", price: 12900, km: 150000, highlights: "Luxury Crossover" },
+        { year: 2015, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, highlights: "Off-White Interior" },
+        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 8900, km: 150000, highlights: "Budget Friendly" },
+        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 10900, km: 159850, highlights: "Cooled Seats, One Owner" }
+    ];
+
+    function handleKey(e) { if (e.keyCode === 13) sendMessage(); }
+
+    function sendMessage() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        input.value = '';
+        
+        setTimeout(() => processQuery(text), 500);
+    }
+
+    function addMessage(text, sender) {
+        const container = document.getElementById('chat-container');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        msgDiv.innerHTML = text;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function processQuery(query) {
+        const q = query.toLowerCase();
+        let results = [];
+        let response = "";
+
+        // Simple Keyword Logic
+        if (q.includes("suv")) {
+            results = inventory.filter(c => c.type === "SUV");
+            response = "Here are our current SUVs:";
+        } else if (q.includes("sedan")) {
+            results = inventory.filter(c => c.type === "Sedan");
+            response = "Here are our current sedans:";
+        } else if (q.includes("cheapest") || q.includes("budget") || q.includes("under")) {
+            const sorted = [...inventory].sort((a,b) => a.price - b.price);
+            results = [sorted[0], sorted[1]];
+            response = "Our most budget-friendly options are:";
+        } else if (q.includes("audi")) {
+            results = inventory.filter(c => c.make === "Audi");
+            response = "We have a great selection of Audis in stock:";
+        } else {
+            response = "I'm not sure about that. Try asking about 'SUVs', 'Audis', or 'Price'. Here is everything we have:";
+            results = inventory;
+        }
+
+        let carListHtml = response;
+        results.forEach(car => {
+            carListHtml += `<div class="car-card">
+                <strong>${car.year} ${car.make} ${car.model}</strong><br>
+                Price: $${car.price.toLocaleString()} | ${car.km.toLocaleString()} km<br>
+                <em>${car.highlights}</em>
+            </div>`;
+        });
+
+        carListHtml += "<br><small>*Excludes $799 certification & taxes.</small>";
+        addMessage(carListHtml, 'bot');
+    }
+</script>
+
+</body>
+</html>
