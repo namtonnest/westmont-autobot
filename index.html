@@ -35,7 +35,14 @@
 
 <div id="chat-container">
     <div class="message bot">
-        Hello! I'm your AI inventory assistant. You can ask me things like "Show me SUVs" or "What is your cheapest car?"
+        Hello! I'm your AI inventory assistant for <strong>Toronto Auto Sales</strong>. We have <strong>30 quality vehicles</strong> in stock!<br><br>
+        You can ask me things like:<br>
+        • "Show me SUVs" or "Show me sedans"<br>
+        • "What's your cheapest car?" or "Under $15,000"<br>
+        • "Show me Audis" or any brand (BMW, Porsche, Nissan, etc.)<br>
+        • "Low mileage vehicles" or "Hybrid vehicles"<br>
+        • "White cars" or any color<br><br>
+        <em>What can I help you find today?</em>
     </div>
 </div>
 
@@ -46,13 +53,36 @@
 
 <script>
     const inventory = [
-        { year: 2016, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, highlights: "S-Line, One Owner" },
-        { year: 2016, make: "Mazda", model: "CX-3", type: "SUV", price: 12900, km: 190000, highlights: "Clean Carfax" },
-        { year: 2016, make: "Nissan", model: "Rogue", type: "SUV", price: 11900, km: 127000, highlights: "SL Trim, Low KM" },
-        { year: 2015, make: "Audi", model: "Q3", type: "SUV", price: 12900, km: 150000, highlights: "Luxury Crossover" },
-        { year: 2015, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, highlights: "Off-White Interior" },
-        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 8900, km: 150000, highlights: "Budget Friendly" },
-        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 10900, km: 159850, highlights: "Cooled Seats, One Owner" }
+        { year: 2018, make: "Audi", model: "Q7", type: "SUV", price: 21900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Panoramic Sunroof" },
+        { year: 2015, make: "Audi", model: "Q3", type: "SUV", price: 12900, km: 150000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, LED Headlights" },
+        { year: 2016, make: "Nissan", model: "Rogue", type: "SUV", price: 11900, km: 127000, exterior: "Red", interior: "Black", fuel: "Gasoline", highlights: "SL Trim, Navigation" },
+        { year: 2015, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 12900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, Navigation" },
+        { year: 2018, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 14900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Title, Panoramic Sunroof" },
+        { year: 2018, make: "Mitsubishi", model: "Outlander PHEV", type: "SUV", price: 16900, km: 138000, exterior: "Black", interior: "Black", fuel: "Hybrid", highlights: "Plug-in Hybrid, Panoramic Sunroof" },
+        { year: 2020, make: "Nissan", model: "Rogue", type: "SUV", price: 16500, km: 140000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2017, make: "BMW", model: "X6", type: "SUV", price: 21500, km: 160000, exterior: "Grey", interior: "Brown", fuel: "Gasoline", highlights: "M-Sport, Panoramic Sunroof" },
+        { year: 2020, make: "Nissan", model: "Rogue", type: "SUV", price: 15500, km: 120000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Low KM, Panoramic Sunroof" },
+        { year: 2018, make: "Jaguar", model: "F-Pace", type: "SUV", price: 17900, km: 140000, exterior: "Grey", interior: "Black", fuel: "Diesel", highlights: "20D, Clean Carfax, Panoramic Sunroof" },
+        { year: 2020, make: "Ford", model: "Edge", type: "SUV", price: 17500, km: 160000, exterior: "Black", interior: "Off White", fuel: "Gasoline", highlights: "Titanium, Clean Carfax, Panoramic Sunroof" },
+        { year: 2016, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "TFSI S-Line, One Owner, Panoramic Sunroof" },
+        { year: 2017, make: "Porsche", model: "Macan", type: "SUV", price: 18500, km: 180000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, LED Headlights" },
+        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 8900, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, Affordable" },
+        { year: 2015, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, exterior: "Black", interior: "Tan", fuel: "Gasoline", highlights: "TFSI S-Line, Panoramic Sunroof" },
+        { year: 2017, make: "Audi", model: "Q3", type: "SUV", price: 17500, km: 124000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Low KM, Panoramic Sunroof" },
+        { year: 2018, make: "Audi", model: "Q5", type: "SUV", price: 16900, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2018, make: "Infiniti", model: "QX60", type: "SUV", price: 17500, km: 140000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Luxury 7-Seater" },
+        { year: 2015, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 12900, km: 150000, exterior: "Orange", interior: "Black", fuel: "Gasoline", highlights: "Limited, Cooled/Heated Seats, Panoramic Sunroof" },
+        { year: 2019, make: "Ford", model: "Edge", type: "SUV", price: 15500, km: 150000, exterior: "Blue", interior: "Black", fuel: "Gasoline", highlights: "SEL, Panoramic Sunroof" },
+        { year: 2018, make: "Nissan", model: "Pathfinder", type: "SUV", price: 16500, km: 160000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Platinum, Clean Carfax, 7-Seater" },
+        { year: 2016, make: "Mazda", model: "CX-3", type: "SUV", price: 12900, km: 190000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2017, make: "Infiniti", model: "QX60", type: "SUV", price: 17500, km: 113000, exterior: "White", interior: "Brown", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Low KM" },
+        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 14900, km: 101000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Low KM, Panoramic Sunroof" },
+        { year: 2019, make: "Land Rover", model: "Range Rover Sport", type: "SUV", price: 42500, km: 100000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Cooled/Heated Seats" },
+        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 10900, km: 159850, exterior: "Grey", interior: "Off White", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Cooled/Heated Seats" },
+        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 9950, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Great Value" },
+        { year: 2019, make: "Porsche", model: "Panamera", type: "Sedan", price: 43900, km: 160000, exterior: "Blue", interior: "Tan", fuel: "Gasoline", highlights: "Panamera 4, Panoramic Sunroof" },
+        { year: 2018, make: "Nissan", model: "Pathfinder", type: "SUV", price: 12900, km: 160000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "SV, 7-Seater, Navigation" },
+        { year: 2018, make: "Audi", model: "Q5", type: "SUV", price: 16500, km: 170000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, LED Headlights" }
     ];
 
     function handleKey(e) { if (e.keyCode === 13) sendMessage(); }
@@ -82,35 +112,111 @@
         let results = [];
         let response = "";
 
-        // Simple Keyword Logic
-        if (q.includes("suv")) {
+        // Price range queries
+        if (q.includes("under 15") || q.includes("under $15")) {
+            results = inventory.filter(c => c.price < 15000);
+            response = "Vehicles under $15,000:";
+        } else if (q.includes("under 20") || q.includes("under $20")) {
+            results = inventory.filter(c => c.price < 20000);
+            response = "Vehicles under $20,000:";
+        } else if (q.includes("cheapest") || q.includes("budget") || q.includes("affordable")) {
+            const sorted = [...inventory].sort((a,b) => a.price - b.price);
+            results = sorted.slice(0, 5);
+            response = "Our most affordable vehicles:";
+        } else if (q.includes("expensive") || q.includes("luxury") || q.includes("premium")) {
+            const sorted = [...inventory].sort((a,b) => b.price - a.price);
+            results = sorted.slice(0, 5);
+            response = "Our premium luxury vehicles:";
+        }
+        // Vehicle type queries
+        else if (q.includes("suv") || q.includes("crossover")) {
             results = inventory.filter(c => c.type === "SUV");
-            response = "Here are our current SUVs:";
-        } else if (q.includes("sedan")) {
+            response = "Here are our current SUVs and crossovers:";
+        } else if (q.includes("sedan") || q.includes("car")) {
             results = inventory.filter(c => c.type === "Sedan");
             response = "Here are our current sedans:";
-        } else if (q.includes("cheapest") || q.includes("budget") || q.includes("under")) {
-            const sorted = [...inventory].sort((a,b) => a.price - b.price);
-            results = [sorted[0], sorted[1]];
-            response = "Our most budget-friendly options are:";
-        } else if (q.includes("audi")) {
+        }
+        // Make-specific queries
+        else if (q.includes("audi")) {
             results = inventory.filter(c => c.make === "Audi");
-            response = "We have a great selection of Audis in stock:";
+            response = "We have a great selection of Audis:";
+        } else if (q.includes("bmw")) {
+            results = inventory.filter(c => c.make === "BMW");
+            response = "Check out our BMW inventory:";
+        } else if (q.includes("porsche")) {
+            results = inventory.filter(c => c.make === "Porsche");
+            response = "Our Porsche collection:";
+        } else if (q.includes("nissan")) {
+            results = inventory.filter(c => c.make === "Nissan");
+            response = "Our Nissan inventory:";
+        } else if (q.includes("hyundai")) {
+            results = inventory.filter(c => c.make === "Hyundai");
+            response = "Our Hyundai vehicles:";
+        } else if (q.includes("ford")) {
+            results = inventory.filter(c => c.make === "Ford");
+            response = "Our Ford inventory:";
+        } else if (q.includes("infiniti")) {
+            results = inventory.filter(c => c.make === "Infiniti");
+            response = "Our Infiniti luxury vehicles:";
+        } else if (q.includes("jaguar")) {
+            results = inventory.filter(c => c.make === "Jaguar");
+            response = "Our Jaguar inventory:";
+        } else if (q.includes("land rover") || q.includes("range rover")) {
+            results = inventory.filter(c => c.make === "Land Rover");
+            response = "Our Land Rover inventory:";
+        } else if (q.includes("mazda")) {
+            results = inventory.filter(c => c.make === "Mazda");
+            response = "Our Mazda inventory:";
+        } else if (q.includes("mitsubishi")) {
+            results = inventory.filter(c => c.make === "Mitsubishi");
+            response = "Our Mitsubishi inventory:";
+        }
+        // Special features
+        else if (q.includes("hybrid") || q.includes("electric")) {
+            results = inventory.filter(c => c.fuel === "Hybrid");
+            response = "Our hybrid/electric vehicles:";
+        } else if (q.includes("diesel")) {
+            results = inventory.filter(c => c.fuel === "Diesel");
+            response = "Our diesel vehicles:";
+        } else if (q.includes("low km") || q.includes("low mileage")) {
+            results = inventory.filter(c => c.km < 120000).sort((a,b) => a.km - b.km);
+            response = "Our lowest mileage vehicles:";
+        } else if (q.includes("white")) {
+            results = inventory.filter(c => c.exterior === "White");
+            response = "White exterior vehicles:";
+        } else if (q.includes("black")) {
+            results = inventory.filter(c => c.exterior === "Black");
+            response = "Black exterior vehicles:";
+        }
+        // General info
+        else if (q.includes("count") || q.includes("how many")) {
+            response = `We currently have <strong>${inventory.length} vehicles</strong> in stock!`;
+            addMessage(response, 'bot');
+            return;
+        } else if (q.includes("newest") || q.includes("latest")) {
+            const sorted = [...inventory].sort((a,b) => b.year - a.year);
+            results = sorted.slice(0, 5);
+            response = "Our newest arrivals:";
         } else {
-            response = "I'm not sure about that. Try asking about 'SUVs', 'Audis', or 'Price'. Here is everything we have:";
-            results = inventory;
+            response = "I can help you find vehicles! Try asking about:<br>• Vehicle types (SUV, sedan)<br>• Brands (Audi, BMW, Porsche, etc.)<br>• Price ranges (under $15k, cheapest)<br>• Features (hybrid, low mileage)<br><br>Here's our full inventory:";
+            results = inventory.sort((a,b) => b.year - a.year);
         }
 
         let carListHtml = response;
         results.forEach(car => {
             carListHtml += `<div class="car-card">
                 <strong>${car.year} ${car.make} ${car.model}</strong><br>
-                Price: $${car.price.toLocaleString()} | ${car.km.toLocaleString()} km<br>
+                Price: <strong>$${car.price.toLocaleString()}</strong> | ${car.km.toLocaleString()} km<br>
+                ${car.exterior} exterior, ${car.interior} interior | ${car.fuel}<br>
                 <em>${car.highlights}</em>
             </div>`;
         });
 
-        carListHtml += "<br><small>*Excludes $799 certification & taxes.</small>";
+        if (results.length === 0) {
+            carListHtml = "Sorry, no vehicles match that criteria. Try a different search!";
+        }
+
+        carListHtml += "<br><small>*Price excludes $799 certification & applicable taxes.</small>";
         addMessage(carListHtml, 'bot');
     }
 </script>
