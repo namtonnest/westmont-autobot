@@ -472,7 +472,8 @@ IMPORTANT: Return your response in this JSON format:
                     results = results.filter(c => c.km <= filters.maxKm);
                 }
                 if (filters.features && filters.features.length > 0) {
-                    results = results.filter(c => {\n                        const highlights = c.highlights.toLowerCase();
+                    results = results.filter(c => {
+                        const highlights = c.highlights.toLowerCase();
                         return filters.features.some(f => highlights.includes(f.toLowerCase()));
                     });
                 }
