@@ -35,15 +35,15 @@
 
 <div id="chat-container">
     <div class="message bot">
-        Hello! I'm your <strong>Smart AI Assistant</strong> for Toronto Auto Sales. We have <strong>30 quality vehicles</strong>!<br><br>
-        🧠 <strong>I understand natural language! Try:</strong><br>
-        • "Cheap Audi SUVs"<br>
-        • "2018 Nissan under $17k"<br>
-        • "Luxury vehicles 2019 or newer"<br>
-        • "Low mileage hybrids"<br>
-        • "Best value cars"<br>
-        • "Recommend something" or "Compare" (after search)<br><br>
-        <em>What can I help you find today?</em> 🚗
+        Hello! I'm your <strong>Advanced AI Assistant</strong> 🤖 I have <strong>30 vehicles</strong> and understand natural conversation!<br><br>
+        💬 <strong>Just talk naturally! I understand:</strong><br>
+        • "I want a reliable family SUV under 15k"<br>
+        • "Show me something with panoramic sunroof"<br>
+        • "What's the best Audi you have?"<br>
+        • "I need a fuel efficient car"<br>
+        • "Show me cars similar to the Q7"<br>
+        • "Not interested in Hyundai, show SUVs"<br><br>
+        <em>What type of vehicle are you looking for?</em> 🚗✨
     </div>
 </div>
 
@@ -86,7 +86,67 @@
         { year: 2018, make: "Audi", model: "Q5", type: "SUV", price: 16500, km: 170000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, LED Headlights" }
     ];
 
-    let conversationContext = { lastResults: [], userPreferences: {} };
+    let conversationContext = { lastResults: [], userPreferences: {}, lastQuery: '' };
+
+    // Synonym and keyword mappings
+    const synonyms = {
+        cheap: ['affordable', 'budget', 'inexpensive', 'economical', 'low cost'],
+        expensive: ['luxury', 'premium', 'high end', 'upscale', 'pricey'],
+        new: ['recent', 'latest', 'newer', 'modern'],
+        old: ['older', 'vintage', 'previous'],
+        good: ['great', 'excellent', 'best', 'top', 'quality'],
+        reliable: ['dependable', 'trustworthy', 'solid'],
+        family: ['spacious', 'roomy', 'large', '7 seater', 'seats 7'],
+        efficient: ['economical', 'fuel efficient', 'gas saver', 'eco'],
+        fast: ['quick', 'sporty', 'performance', 'powerful']
+    };
+
+    const featureKeywords = {
+        panoramic: ['panoramic sunroof', 'sunroof', 'pano roof'],
+        heated: ['heated seats', 'seat warmers'],
+        navigation: ['nav', 'gps', 'navigation system'],
+        backup: ['backup cam', 'rear camera', 'backup camera', 'rearview camera'],
+        leather: ['leather seats', 'leather interior'],
+        awd: ['all wheel drive', '4wd', 'four wheel drive'],
+        led: ['led headlights', 'led lights']
+    };
+
+    // Fuzzy match for model names
+    function fuzzyMatchModel(query) {
+        const models = ['Q7', 'Q5', 'Q3', 'A4', 'X6', 'Macan', 'Panamera', 'Rogue', 'Pathfinder', 
+                       'Edge', 'Santa Fe', 'Tucson', 'Elantra', 'Outlander', 'F-Pace', 'QX60', 'CX-3', 'Range Rover'];
+        const q = query.toLowerCase();
+        return models.find(m => q.includes(m.toLowerCase()));
+    }
+
+    // Check for synonyms
+    function containsSynonym(query, word) {
+        const q = query.toLowerCase();
+        if (q.includes(word)) return true;
+        if (synonyms[word]) {
+            return synonyms[word].some(syn => q.includes(syn));
+        }
+        return false;
+    }
+
+    // Extract features from query
+    function extractFeatures(query) {
+        const q = query.toLowerCase();
+        const found = [];
+        for (let [feature, keywords] of Object.entries(featureKeywords)) {
+            if (keywords.some(kw => q.includes(kw))) {
+                found.push(feature);
+            }
+        }
+        return found;
+    }
+
+    // Check if query is a question
+    function isQuestion(query) {
+        const q = query.toLowerCase();
+        return q.includes('?') || q.startsWith('what') || q.startsWith('which') || 
+               q.startsWith('how') || q.startsWith('show') || q.startsWith('do you');
+    }
 
     function handleKey(e) { if (e.keyCode === 13) sendMessage(); }
 
@@ -173,18 +233,70 @@
         let results = [...inventory];
         let response = "";
         let filterApplied = false;
+        conversationContext.lastQuery = query;
 
-        // SMART MULTI-CRITERIA FILTERING
-        
+        // CONVERSATIONAL RESPONSES
+        if (q.includes('hello') || q.includes('hi ') || q === 'hi') {
+            addMessage('Hello! 👋 What kind of vehicle are you looking for today?', 'bot');
+            return;
+        }
+        if (q.includes('thank') || q.includes('thanks')) {
+            addMessage('You\'re welcome! Let me know if you need anything else! 😊', 'bot');
+            return;
+        }
+
+        // SIMILARITY SEARCH ("similar to" or "like the")
+        if ((q.includes('similar') || q.includes('like the')) && conversationContext.lastResults.length > 0) {
+            const reference = conversationContext.lastResults[0];
+            results = inventory.filter(c => 
+                c.type === reference.type && 
+                c.make !== reference.make &&
+                Math.abs(c.price - reference.price) < 5000
+            );
+            response = `🔍 Vehicles similar to the ${reference.year} ${reference.make} ${reference.model}:`;
+            filterApplied = true;
+        }
+
+        // EXCLUSION LOGIC ("not" or "except" or "no")
+        const notMatch = q.match(/not (\w+)|no (\w+)|except (\w+)|without (\w+)/);
+        if (notMatch) {
+            const excluded = notMatch[1] || notMatch[2] || notMatch[3] || notMatch[4];
+            const excludeMake = extractMake(excluded);
+            if (excludeMake) {
+                results = results.filter(c => c.make.toLowerCase() !== excludeMake);
+                response += `(excluding ${excludeMake.charAt(0).toUpperCase() + excludeMake.slice(1)}) `;
+                filterApplied = true;
+            }
+        }
+
+        // MODEL-SPECIFIC SEARCH
+        const model = fuzzyMatchModel(q);
+        if (model) {
+            results = results.filter(c => c.model.toLowerCase().includes(model.toLowerCase()));
+            response += `${model} `;
+            filterApplied = true;
+        }
+
+        // FEATURE-BASED SEARCH
+        const features = extractFeatures(q);
+        if (features.length > 0) {
+            results = results.filter(c => {
+                const highlights = c.highlights.toLowerCase();
+                return features.every(f => highlights.includes(f));
+            });
+            response += `with ${features.join(', ')} `;
+            filterApplied = true;
+        }
+
         // 1. Filter by Make
         const make = extractMake(q);
-        if (make) {
+        if (make && !model) {
             results = results.filter(c => c.make.toLowerCase() === make);
             response += `${make.charAt(0).toUpperCase() + make.slice(1)} `;
             filterApplied = true;
         }
 
-        // 2. Filter by Type
+        // 2. Filter by Type (with synonym support)
         const type = extractType(q);
         if (type) {
             results = results.filter(c => c.type === type);
@@ -192,17 +304,45 @@
             filterApplied = true;
         }
 
-        // 3. Filter by Price Range
-        const priceRange = extractPrice(q);
-        if (priceRange) {
-            if (priceRange.min) results = results.filter(c => c.price >= priceRange.min);
-            if (priceRange.max) results = results.filter(c => c.price <= priceRange.max);
-            if (priceRange.max) response += `under $${(priceRange.max/1000).toFixed(0)}k `;
-            if (priceRange.min) response += `over $${(priceRange.min/1000).toFixed(0)}k `;
+        // 3. INTELLIGENT INTENT DETECTION
+        if (containsSynonym(q, 'family')) {
+            results = results.filter(c => 
+                c.type === 'SUV' && 
+                (c.highlights.toLowerCase().includes('7-seater') || 
+                 c.model.includes('Pathfinder') || c.model.includes('QX60') || c.model.includes('Santa Fe'))
+            );
+            response += 'Family-Friendly ';
             filterApplied = true;
         }
 
-        // 4. Filter by Year Range
+        if (containsSynonym(q, 'efficient') || q.includes('fuel')) {
+            results = results.filter(c => c.fuel === 'Hybrid' || c.fuel === 'Diesel');
+            response += 'Fuel-Efficient ';
+            filterApplied = true;
+        }
+
+        if (containsSynonym(q, 'reliable')) {
+            results = results.filter(c => 
+                c.highlights.toLowerCase().includes('clean carfax') &&
+                c.km < 150000
+            );
+            response += 'Reliable ';
+            filterApplied = true;
+        }
+
+        // 4. Filter by Price Range (with synonym support)
+        const priceRange = extractPrice(q);
+        if (priceRange || containsSynonym(q, 'cheap')) {
+            if (priceRange) {
+                if (priceRange.min) results = results.filter(c => c.price >= priceRange.min);
+                if (priceRange.max) results = results.filter(c => c.price <= priceRange.max);
+                if (priceRange.max) response += `under $${(priceRange.max/1000).toFixed(0)}k `;
+                if (priceRange.min) response += `over $${(priceRange.min/1000).toFixed(0)}k `;
+                filterApplied = true;
+            }
+        }
+
+        // 5. Filter by Year Range
         const yearRange = extractYearRange(q);
         if (yearRange) {
             results = results.filter(c => c.year >= yearRange.min && c.year <= yearRange.max);
@@ -214,103 +354,138 @@
             filterApplied = true;
         }
 
-        // 5. Special filters
-        if (q.includes("hybrid") || q.includes("electric")) {
-            results = results.filter(c => c.fuel === "Hybrid");
-            response += "Hybrid ";
+        // 6. Special filters
+        if (q.includes('hybrid') || q.includes('electric') || q.includes('phev')) {
+            results = results.filter(c => c.fuel === 'Hybrid');
+            response += 'Hybrid ';
             filterApplied = true;
         }
-        if (q.includes("diesel")) {
-            results = results.filter(c => c.fuel === "Diesel");
-            response += "Diesel ";
+        if (q.includes('diesel')) {
+            results = results.filter(c => c.fuel === 'Diesel');
+            response += 'Diesel ';
             filterApplied = true;
         }
-        if (q.includes("low km") || q.includes("low mileage")) {
+        if (q.includes('low km') || q.includes('low mileage')) {
             results = results.filter(c => c.km < 120000);
-            response += "Low Mileage ";
+            response += 'Low Mileage ';
             filterApplied = true;
         }
-        if (q.includes("white") && !q.includes("off white")) {
-            results = results.filter(c => c.exterior === "White");
-            response += "White ";
+        if ((q.includes('white') || q.includes('white exterior')) && !q.includes('off white')) {
+            results = results.filter(c => c.exterior === 'White');
+            response += 'White ';
             filterApplied = true;
         }
-        if (q.includes("black")) {
-            results = results.filter(c => c.exterior === "Black");
-            response += "Black ";
+        if (q.includes('black')) {
+            results = results.filter(c => c.exterior === 'Black');
+            response += 'Black ';
             filterApplied = true;
         }
 
-        // SMART SORTING
-        if (q.includes("cheapest") || q.includes("affordable") || q.includes("budget")) {
+        // SMART SORTING with synonym support
+        if (containsSynonym(q, 'cheap') || q.includes('cheapest')) {
             results.sort((a,b) => a.price - b.price);
             results = results.slice(0, 5);
-            response = "Most Affordable " + response;
-        } else if (q.includes("expensive") || q.includes("luxury") || q.includes("premium")) {
+            response = '💰 Most Affordable ' + response;
+        } else if (containsSynonym(q, 'expensive')) {
             results.sort((a,b) => b.price - a.price);
             results = results.slice(0, 5);
-            response = "Premium " + response;
-        } else if (q.includes("newest") || q.includes("latest")) {
+            response = '💎 Premium ' + response;
+        } else if (containsSynonym(q, 'new') || q.includes('newest')) {
             results.sort((a,b) => b.year - a.year);
             results = results.slice(0, 5);
-            response = "Newest " + response;
-        } else if (q.includes("best value")) {
+            response = '🆕 Newest ' + response;
+        } else if (q.includes('best value')) {
             results.sort((a,b) => (a.price/a.year) - (b.price/b.year));
             results = results.slice(0, 5);
-            response = "Best Value " + response;
+            response = '⭐ Best Value ' + response;
+        } else if (containsSynonym(q, 'good') || q.includes('best')) {
+            results.sort((a,b) => {
+                const scoreA = (2026 - a.year) * 100 + a.price/100 + a.km/500;
+                const scoreB = (2026 - b.year) * 100 + b.price/100 + b.km/500;
+                return scoreA - scoreB;
+            });
+            results = results.slice(0, 5);
+            response = '🌟 Best ' + response;
         } else {
-            // Default sort by year (newest first)
             results.sort((a,b) => b.year - a.year);
         }
 
         // SPECIAL QUERIES
-        if (q.includes("count") || q.includes("how many")) {
+        if (q.includes('count') || q.includes('how many')) {
             let countMsg = `We have <strong>${results.length} vehicle${results.length !== 1 ? 's' : ''}</strong>`;
-            if (filterApplied) countMsg += " matching your criteria!";
-            else countMsg += " in total inventory.";
+            if (filterApplied) countMsg += ' matching your criteria!';
+            else countMsg += ' in total inventory.';
             addMessage(countMsg, 'bot');
             return;
         }
 
-        if (q.includes("compare") && conversationContext.lastResults.length >= 2) {
+        if (q.includes('compare') && conversationContext.lastResults.length >= 2) {
             const car1 = conversationContext.lastResults[0];
             const car2 = conversationContext.lastResults[1];
             const comparison = `
                 <div class="car-card">
-                    <strong>Comparison:</strong><br><br>
+                    <strong>📊 Comparison:</strong><br><br>
                     <strong>${car1.year} ${car1.make} ${car1.model}</strong> vs <strong>${car2.year} ${car2.make} ${car2.model}</strong><br><br>
                     💰 Price: $${car1.price.toLocaleString()} vs $${car2.price.toLocaleString()} 
-                    (${car1.price < car2.price ? '✅ Cheaper' : '❌ More expensive'})<br>
+                    ${car1.price < car2.price ? '<strong>(✅ $' + (car2.price - car1.price).toLocaleString() + ' cheaper)</strong>' : 
+                      car1.price > car2.price ? '(❌ $' + (car1.price - car2.price).toLocaleString() + ' more)' : '(⚖️ Same)'}<br>
                     📏 Mileage: ${car1.km.toLocaleString()} km vs ${car2.km.toLocaleString()} km 
-                    (${car1.km < car2.km ? '✅ Lower' : '❌ Higher'})<br>
+                    ${car1.km < car2.km ? '<strong>(✅ ' + (car2.km - car1.km).toLocaleString() + ' km less)</strong>' : 
+                      car1.km > car2.km ? '(❌ ' + (car1.km - car2.km).toLocaleString() + ' km more)' : '(⚖️ Same)'}<br>
                     📅 Year: ${car1.year} vs ${car2.year} 
-                    (${car1.year > car2.year ? '✅ Newer' : car1.year === car2.year ? '⚖️ Same' : '❌ Older'})<br>
+                    ${car1.year > car2.year ? '<strong>(✅ ' + (car1.year - car2.year) + ' year(s) newer)</strong>' : 
+                      car1.year < car2.year ? '(❌ ' + (car2.year - car1.year) + ' year(s) older)' : '(⚖️ Same year)'}<br>
                     ⛽ Fuel: ${car1.fuel} vs ${car2.fuel}<br>
+                    🎨 Color: ${car1.exterior} vs ${car2.exterior}<br>
                 </div>
             `;
             addMessage(comparison, 'bot');
             return;
         }
 
-        if (q.includes("recommend") || q.includes("suggest")) {
+        if (q.includes('recommend') || q.includes('suggest')) {
             results.sort((a,b) => {
-                const scoreA = (2025 - a.year) * 100 + a.price/100 + a.km/1000;
-                const scoreB = (2025 - b.year) * 100 + b.price/100 + b.km/1000;
+                const scoreA = (2026 - a.year) * 100 + a.price/100 + a.km/500;
+                const scoreB = (2026 - b.year) * 100 + b.price/100 + b.km/500;
                 return scoreA - scoreB;
             });
             results = results.slice(0, 3);
-            response = "🌟 Top Recommendations for You:";
+            response = '🌟 My Top Recommendations Based on Value:';
         }
 
         // Build response message
         if (!filterApplied && !response) {
-            response = "I can help you find the perfect vehicle! Try:<br>• \"Cheap Audi SUVs\"<br>• \"2020 Nissan under $17k\"<br>• \"Luxury vehicles\"<br>• \"Low mileage hybrids\"<br><br>Showing all inventory:";
+            response = "I can help! Try things like:<br>• \"I want a reliable family SUV under 15k\"<br>• \"Show me something with panoramic sunroof\"<br>• \"Best Audi you have\"<br>• \"Not interested in Hyundai, show SUVs\"<br><br>Showing all inventory:";
         } else if (filterApplied) {
-            response = "Found " + response + "vehicles:";
+            response = '🔍 ' + response + 'vehicles:';
         }
 
         // Store results for context
         conversationContext.lastResults = results;
+
+        // INTELLIGENT SUGGESTIONS if no results
+        if (results.length === 0) {
+            let suggestion = '❌ No exact matches. ';
+            // Retry with relaxed criteria
+            let relaxed = [...inventory];
+            if (make) relaxed = relaxed.filter(c => c.make.toLowerCase() === make);
+            if (type) relaxed = relaxed.filter(c => c.type === type);
+            
+            if (relaxed.length > 0) {
+                suggestion += `But I found <strong>${relaxed.length} ${make || type || ''} vehicle(s)</strong> in a different price range. Want to see them?<br><br>`;
+                relaxed.sort((a,b) => a.price - b.price);
+                relaxed.slice(0, 3).forEach(car => {
+                    suggestion += `<div class="car-card">
+                        <strong>${car.year} ${car.make} ${car.model}</strong> - $${car.price.toLocaleString()}<br>
+                        ${car.km.toLocaleString()} km | ${car.exterior}<br>
+                    </div>`;
+                });
+            } else {
+                suggestion += 'Try: <br>• Broader search<br>• "Show all SUVs"<br>• "Best vehicles under $20k"';
+            }
+            addMessage(suggestion, 'bot');
+            return;
+        }
 
         // Display results
         let carListHtml = response;
@@ -323,13 +498,14 @@
             </div>`;
         });
 
-        if (results.length === 0) {
-            carListHtml = "❌ Sorry, no vehicles match those criteria. Try:<br>• Broader search terms<br>• Different price range<br>• \"Show all vehicles\"";
-        } else if (results.length > 1) {
-            carListHtml += "<br><small>💡 Tip: Ask \"compare\" to compare the first two results!</small>";
+        if (results.length > 1 && !q.includes('compare')) {
+            carListHtml += '<br><small>💡 Ask "compare" to see detailed comparison, or "similar to" for alternatives!</small>';
+        }
+        if (results.length === 1) {
+            carListHtml += '<br><small>💡 Try "show me similar" to see alternatives!</small>';
         }
 
-        carListHtml += "<br><small>*Price excludes $799 certification & applicable taxes.</small>";
+        carListHtml += '<br><small>*Price excludes $799 certification & applicable taxes.</small>';
         addMessage(carListHtml, 'bot');
     }
 </script>
