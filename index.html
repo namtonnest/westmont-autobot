@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toronto Auto Sales | Inventory Bot</title>
+    <script src="config.js"></script>
     <style>
         :root { --primary: #2c3e50; --secondary: #e74c3c; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
@@ -80,17 +81,25 @@
 
 <div id="chat-container">
     <div class="message bot">
-        Hello! I'm your <strong>Advanced AI Assistant</strong> 🤖 I have <strong>30 vehicles</strong> and understand natural conversation!<br><br>
-        💬 <strong>Just talk naturally! I understand:</strong><br>
+        Hello! I'm your <strong>AI-Powered Assistant</strong> 🤖 <span id="aiStatusBadge"></span><br><br>
+        I have <strong>30 vehicles</strong> and I understand natural conversation!<br><br>
+        💬 <strong>Just talk to me naturally:</strong><br>
         • "I want a reliable family SUV under 15k"<br>
         • "Show me something with panoramic sunroof"<br>
         • "What's the best Audi you have?"<br>
         • "I need a fuel efficient car"<br>
-        • "Show me cars similar to the Q7"<br>
-        • "Not interested in Hyundai, show SUVs"<br><br>
-        <em>What type of vehicle are you looking for?</em> 🚗✨
+        • "Compare your top 2 SUVs"<br>
+        • "Not interested in Hyundai, show me alternatives"<br><br>
+        <em>What type of vehicle are you looking for today?</em> 🚗✨
     </div>
 </div>
+
+<script>
+    // Set AI status badge
+    if (typeof API_CONFIG !== 'undefined' && API_CONFIG.enableByDefault) {
+        document.getElementById('aiStatusBadge').innerHTML = '<span style="background:#2ecc71;color:white;padding:2px 6px;border-radius:3px;font-size:0.85em;">LLM ENABLED</span>';
+    }
+</script>
 
 <div class="input-area">
     <input type="text" id="userInput" placeholder="Type your question here..." onkeypress="handleKey(event)">
@@ -98,12 +107,12 @@
 </div>
 
 <script>
-    // LLM Configuration
+    // LLM Configuration - Uses config.js if available
     let llmConfig = {
-        enabled: false,
-        provider: 'none',
-        apiKey: '',
-        model: 'gpt-3.5-turbo'
+        enabled: typeof API_CONFIG !== 'undefined' && API_CONFIG.enableByDefault,
+        provider: typeof API_CONFIG !== 'undefined' && API_CONFIG.enableByDefault ? 'groq' : 'none',
+        apiKey: typeof API_CONFIG !== 'undefined' ? API_CONFIG.groqApiKey : '',
+        model: 'llama-3.3-70b-versatile'
     };
 
     // Load saved config from localStorage
