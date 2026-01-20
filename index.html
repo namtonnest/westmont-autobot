@@ -110,6 +110,11 @@
     const savedConfig = localStorage.getItem('llmConfig');
     if (savedConfig) {
         llmConfig = JSON.parse(savedConfig);
+        // Force update deprecated models
+        if (llmConfig.provider === 'groq' && llmConfig.model === 'llama-3.1-70b-versatile') {
+            llmConfig.model = 'llama-3.3-70b-versatile';
+            localStorage.setItem('llmConfig', JSON.stringify(llmConfig));
+        }
         updateAIStatus();
     }
 
@@ -128,7 +133,7 @@
         const provider = document.getElementById('aiProvider').value;
         const info = document.getElementById('providerInfo');
         if (provider === 'groq') {
-            info.innerHTML = '<strong>✅ Groq - Recommended (FREE):</strong><br>Super fast, free API! Get key at <a href="https://console.groq.com" target="_blank">console.groq.com</a><br>Models: llama-3.1-70b (best for chat)';
+            info.innerHTML = '<strong>✅ Groq - Recommended (FREE):</strong><br>Super fast, free API! Get key at <a href="https://console.groq.com" target="_blank">console.groq.com</a><br>Models: llama-3.3-70b-versatile (updated Jan 2026)';
             info.style.background = '#d4edda';
         } else if (provider === 'openai') {
             info.innerHTML = '<strong>OpenAI:</strong><br>Get API key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a><br>Models: gpt-4, gpt-3.5-turbo<br>💰 Pay per use';
@@ -158,9 +163,9 @@
         llmConfig.apiKey = apiKey;
         llmConfig.enabled = provider !== 'none' && apiKey.length > 0;
         
-        // Set model based on provider
+        // Set model based on provider (updated Jan 2026)
         if (provider === 'openai') llmConfig.model = 'gpt-3.5-turbo';
-        else if (provider === 'groq') llmConfig.model = 'llama-3.1-8b-instant';
+        else if (provider === 'groq') llmConfig.model = 'llama-3.3-70b-versatile'; // Updated model
         else if (provider === 'anthropic') llmConfig.model = 'claude-3-haiku-20240307';
         else if (provider === 'gemini') llmConfig.model = 'gemini-pro';
         
