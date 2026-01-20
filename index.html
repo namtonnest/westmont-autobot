@@ -160,7 +160,7 @@
         
         // Set model based on provider
         if (provider === 'openai') llmConfig.model = 'gpt-3.5-turbo';
-        else if (provider === 'groq') llmConfig.model = 'llama-3.1-70b-versatile';
+        else if (provider === 'groq') llmConfig.model = 'llama-3.1-8b-instant';
         else if (provider === 'anthropic') llmConfig.model = 'claude-3-haiku-20240307';
         else if (provider === 'gemini') llmConfig.model = 'gemini-pro';
         
@@ -188,30 +188,35 @@
     async function callLLM(userMessage, inventoryData) {
         const systemPrompt = `You are an expert car sales assistant for Toronto Auto Sales. 
 
-Our current inventory (${inventoryData.length} vehicles):
-${JSON.stringify(inventoryData, null, 2)}
+We have ${inventoryData.length} vehicles in stock including various makes: Audi, BMW, Porsche, Nissan, Hyundai, Ford, Infiniti, Jaguar, Land Rover, Mazda, Mitsubishi.
+
+Price range: $8,900 - $43,900
+Vehicle types: SUVs and Sedans
+Years: 2015-2020
 
 Your job:
 1. Understand the customer's needs from their message
-2. Search the inventory and find the BEST matching vehicles
+2. Determine what filters to apply to find matching vehicles
 3. Respond conversationally and helpfully
-4. If asked to compare, provide detailed comparisons
-5. Suggest alternatives if no exact matches
-6. Be friendly and professional
+4. Be friendly and professional
 
-IMPORTANT: Return your response in this JSON format:
+IMPORTANT: Return ONLY a JSON object in this exact format (no extra text):
 {
   "message": "Your friendly response text",
   "filters": {
-    "makes": ["Audi", "BMW"],  // empty array if none
-    "types": ["SUV"],  // empty array if none
-    "maxPrice": 15000,  // null if none
-    "minPrice": null,  // null if none
-    "maxKm": 120000,  // null if none
-    "features": ["hybrid", "panoramic"]  // empty array if none
+    "makes": [],
+    "types": [],
+    "maxPrice": null,
+    "minPrice": null,
+    "maxKm": null,
+    "features": []
   },
-  "showAll": false  // true if showing all inventory
-}`;
+  "showAll": false
+}
+
+Examples:
+- "I want a cheap Audi" -> {"message": "Great choice! Let me find affordable Audis for you.", "filters": {"makes": ["Audi"], "types": [], "maxPrice": 15000, "minPrice": null, "maxKm": null, "features": []}, "showAll": false}
+- "Show me SUVs under 17k" -> {"message": "Here are our SUVs under $17,000:", "filters": {"makes": [], "types": ["SUV"], "maxPrice": 17000, "minPrice": null, "maxKm": null, "features": []}, "showAll": false}`;
 
         try {
             let response;
@@ -245,7 +250,8 @@ IMPORTANT: Return your response in this JSON format:
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userMessage }
                         ],
-                        temperature: 0.7
+                        temperature: 0.7,
+                        max_tokens: 1024
                     })
                 });
             } else if (llmConfig.provider === 'anthropic') {
@@ -278,7 +284,9 @@ IMPORTANT: Return your response in this JSON format:
             }
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API Error Details:', errorData);
+                throw new Error(`API Error ${response.status}: ${errorData.error?.message || 'Check API key and model name'}`);
             }
 
             const data = await response.json();
