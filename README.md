@@ -4,54 +4,40 @@ An intelligent car inventory chatbot powered by LLM (Large Language Model) AI.
 
 ## Features
 
-- 🤖 **AI-Powered Conversations** - Natural language understanding
+- 🤖 **AI-Powered Conversations** - Natural language understanding with Groq LLM
 - 🔍 **Smart Search** - Multi-criteria filtering
 - 📊 **Vehicle Comparisons** - Detailed side-by-side analysis
 - 💡 **Intelligent Recommendations** - Personalized suggestions
-- ⚡ **Real-time Responses** - Instant results
+- ⚡ **Real-time Responses** - Instant AI-powered results
+- 🆓 **Free to Use** - Pre-configured with shared API key
 
-## Quick Setup (Enable AI)
+## Quick Start
 
-1. **Copy the config template:**
-   ```bash
-   copy config.template.js config.js
-   ```
-
-2. **Get a FREE Groq API Key:**
-   - Visit: https://console.groq.com
-   - Sign up (free)
-   - Create an API key
-
-3. **Edit `config.js`:**
-   ```javascript
-   const API_CONFIG = {
-       groqApiKey: 'your-api-key-here',  // Paste your key
-       enableByDefault: true              // Enable AI
-   };
-   ```
-
-4. **Open `index.html` in your browser** and enjoy AI-powered conversations!
-
-## Supported AI Providers
-
-- **Groq** (Recommended) - FREE & Fast
-- OpenAI (GPT-3.5/4)
-- Anthropic (Claude)
-- Google Gemini
+Simply open `index.html` in your browser - that's it! The AI is already enabled for everyone.
 
 ## Usage Examples
+
+Ask natural questions like:
 
 - "I want a reliable family SUV under 15k"
 - "Show me something with panoramic sunroof"
 - "What's the best Audi you have?"
 - "Compare your top 2 SUVs"
 - "Not interested in Hyundai, show alternatives"
+- "I need a fuel efficient car for long commutes"
+
+## How It Works
+
+- Uses Groq's free LLM API (llama-3.3-70b-versatile)
+- Natural language processing for vehicle searches
+- Intelligent filtering based on conversation context
+- No setup or API keys needed - just open and use!
 
 ## Tech Stack
 
 - Pure HTML/CSS/JavaScript
-- LLM API Integration
-- LocalStorage for configuration
+- Groq LLM API Integration
+- LocalStorage for user preferences
 - No backend required
 
 ## License
