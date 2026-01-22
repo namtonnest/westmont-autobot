@@ -10,7 +10,8 @@
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; }
 
-        header { background: var(--primary); color: white; padding: 1.5rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        header { background: var(--primary); color: white; padding: 1.5rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 50; transition: transform 0.3s; }
+        header.hidden { transform: translateY(-100%); }
         
         main { display: flex; flex: 1; overflow: hidden; }
 
@@ -38,7 +39,44 @@
         .chat-input input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
         .chat-input button { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
 
-        @media (max-width: 1000px) { main { flex-direction: column; } #chat-sidebar { height: 400px; flex: none; } }
+        /* Image Upload Admin Panel */
+        .admin-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100; }
+        .admin-btn:hover { background: #c0392b; }
+        .admin-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 1001; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .admin-panel.active { display: block; }
+        .admin-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
+        .admin-overlay.active { display: block; }
+        .car-upload-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f9f9f9; }
+        .car-upload-item h4 { margin: 0 0 10px 0; color: var(--primary); }
+        .upload-preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 5px; margin-top: 10px; }
+        .file-input-wrapper { margin: 10px 0; }
+        .file-input-wrapper input[type="file"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn-remove { background: #e74c3c; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        .btn-export { background: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 20px; }
+        .btn-export:hover { background: #2980b9; }
+        .export-instructions { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9em; }
+
+        .chat-toggle-btn { display: none; position: fixed; bottom: 20px; left: 20px; background: var(--accent); color: white; border: none; padding: 15px 20px; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 60; font-weight: bold; }
+        .chat-toggle-btn:hover { background: #c0392b; }
+
+        @media (max-width: 1000px) { 
+            header { padding: 1rem; }
+            header h1 { font-size: 1.3rem; margin: 0; }
+            header p { font-size: 0.85rem; margin: 5px 0 0 0; }
+            main { flex-direction: column; } 
+            #inventory-section { padding: 10px; }
+            .gallery { gap: 15px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+            .car-card-ui { font-size: 0.9rem; }
+            .car-info { padding: 10px; }
+            .car-info h3 { font-size: 1rem; }
+            .price-tag { font-size: 1.1rem; }
+            #chat-sidebar { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; flex: none; border-left: none; border-top: 2px solid #ddd; transition: height 0.3s; z-index: 55; } 
+            #chat-sidebar.expanded { height: 70vh; }
+            #chat-container { display: none; }
+            #chat-sidebar.expanded #chat-container { display: flex; }
+            .chat-toggle-btn { display: block; }
+            .admin-btn { bottom: 90px; }
+        }
     </style>
 </head>
 <body>
@@ -74,7 +112,153 @@
     </aside>
 </main>
 
+<!-- Mobile Chat Toggle -->
+<button class="chat-toggle-btn" onclick="toggleChat()" id="chatToggleBtn">💬 AI Chat</button>
+
+<!-- Admin Panel for Image Upload -->
+<button class="admin-btn" onclick="toggleAdminPanel()">📸 Manage Images</button>
+<div class="admin-overlay" id="adminOverlay" onclick="toggleAdminPanel()"></div>
+<div class="admin-panel" id="adminPanel">
+    <h2>🖼️ Vehicle Image Manager</h2>
+    <p style="color: #666; margin-bottom: 20px;">Upload images for each vehicle. Images are stored in your browser.</p>
+    
+    <div class="export-instructions" id="exportInstructions" style="display: none;">
+        <strong>✅ Ready to Make Images Permanent!</strong><br>
+        Click "Export to Code" below. It will copy JavaScript code to your clipboard. Then replace the carImages initialization code with the copied content.
+    </div>
+    
+    <button class="btn-export" onclick="exportImages()">📦 Export Images to Code (Make Permanent)</button>
+    
+    <div id="carUploadList"></div>
+    <button onclick="toggleAdminPanel()" style="width: 100%; padding: 12px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">Close</button>
+</div>
+
 <script>
+    // Image Storage System (uses localStorage)
+    let carImages = {};
+    
+    // Load saved images from localStorage
+    const savedImages = localStorage.getItem('carImages');
+    if (savedImages) {
+        carImages = JSON.parse(savedImages);
+    }
+
+    // Save images to localStorage
+    function saveImages() {
+        localStorage.setItem('carImages', JSON.stringify(carImages));
+    }
+
+    // Get unique ID for each car
+    function getCarId(car) {
+        return `${car.year}-${car.make}-${car.model}-${car.price}`.replace(/\s+/g, '-');
+    }
+
+    // Admin Panel Functions
+    function toggleAdminPanel() {
+        document.getElementById('adminPanel').classList.toggle('active');
+        document.getElementById('adminOverlay').classList.toggle('active');
+        if (document.getElementById('adminPanel').classList.contains('active')) {
+            renderAdminPanel();
+        }
+    }
+
+    function renderAdminPanel() {
+        const list = document.getElementById('carUploadList');
+        list.innerHTML = '';
+        
+        cars.forEach(car => {
+            const carId = getCarId(car);
+            const hasImage = carImages[carId];
+            
+            list.innerHTML += `
+                <div class="car-upload-item">
+                    <h4>${car.year} ${car.make} ${car.model}</h4>
+                    <p style="color: #666; font-size: 0.9em;">$${car.price.toLocaleString()} | ${car.type}</p>
+                    ${hasImage ? `<img src="${carImages[carId]}" class="upload-preview" id="preview-${carId}">` : '<p style="color: #999;">No image uploaded</p>'}
+                    <div class="file-input-wrapper">
+                        <input type="file" accept="image/*" onchange="handleImageUpload(event, '${carId}')" id="upload-${carId}">
+                    </div>
+                    ${hasImage ? `<button class="btn-remove" onclick="removeImage('${carId}')">Remove Image</button>` : ''}
+                </div>
+            `;
+        });
+    }
+
+    function handleImageUpload(event, carId) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Check file size (limit to 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Image too large! Please use an image under 2MB.');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            carImages[carId] = e.target.result;
+            saveImages();
+            renderAdminPanel();
+            renderGallery(cars); // Refresh gallery
+            alert('✅ Image uploaded successfully!');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeImage(carId) {
+        if (confirm('Remove this image?')) {
+            delete carImages[carId];
+            saveImages();
+            renderAdminPanel();
+            renderGallery(cars);
+        }
+    }
+
+    function exportImages() {
+        const imageCount = Object.keys(carImages).length;
+        if (imageCount === 0) {
+            alert('No images to export! Upload some images first.');
+            return;
+        }
+        
+        const exportCode = `    // Permanent Image Storage (exported from localStorage)
+    let carImages = ${JSON.stringify(carImages, null, 8)};
+    
+    // Uncomment below to allow future edits via admin panel:
+    // const savedImages = localStorage.getItem('carImages');
+    // if (savedImages) { carImages = JSON.parse(savedImages); }`;
+        
+        navigator.clipboard.writeText(exportCode).then(() => {
+            alert(`✅ Copied! ${imageCount} images exported.\n\nNow:\n1. Find the carImages initialization in your code\n2. Replace it with the clipboard content\n3. Save the file\n4. Images are now permanent!\n\n(Optional: Remove admin panel after)`);
+            document.getElementById('exportInstructions').style.display = 'block';
+        }).catch(() => {
+            prompt('Copy this code and replace the carImages initialization:', exportCode);
+        });
+    }
+
+    // Mobile UI: Collapsible Chat
+    function toggleChat() {
+        const sidebar = document.getElementById('chat-sidebar');
+        const btn = document.getElementById('chatToggleBtn');
+        sidebar.classList.toggle('expanded');
+        btn.textContent = sidebar.classList.contains('expanded') ? '❌ Close Chat' : '💬 AI Chat';
+    }
+
+    // Mobile UI: Hide header on scroll down
+    let lastScroll = 0;
+    const inventorySection = document.getElementById('inventory-section');
+    const header = document.querySelector('header');
+    
+    inventorySection.addEventListener('scroll', () => {
+        const currentScroll = inventorySection.scrollTop;
+        if (currentScroll > lastScroll && currentScroll > 100) {
+            header.classList.add('hidden');
+        } else {
+            header.classList.remove('hidden');
+        }
+        lastScroll = currentScroll;
+    });
+
     // LLM Configuration - Enabled for all users with shared API key
     const apiKeyParts = ['gsk_sWtKIWgnd', 'mDbAvPgegHhWGdyb3FY', 'hM79YgNYoJvym2uon1ibJrip'];
     
@@ -124,9 +308,15 @@
         const gallery = document.getElementById('carGallery');
         gallery.innerHTML = '';
         filterList.forEach(car => {
+            const carId = getCarId(car);
+            const imageUrl = carImages[carId];
+            
             gallery.innerHTML += `
                 <div class="car-card-ui">
-                    <div class="car-img-placeholder">${car.make} ${car.model} Image</div>
+                    ${imageUrl 
+                        ? `<img src="${imageUrl}" style="width: 100%; height: 180px; object-fit: cover;">` 
+                        : `<div class="car-img-placeholder">${car.make} ${car.model} Image</div>`
+                    }
                     <div class="car-info">
                         <span class="tag">${car.year}</span><span class="tag">${car.type}</span>
                         <h3>${car.make} ${car.model}</h3>
