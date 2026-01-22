@@ -181,7 +181,12 @@
         
         cars.forEach(car => {
             const carId = getCarId(car);
-            const images = carImages[carId] || [];
+            // Backward compatibility: convert old string format to array
+            let images = carImages[carId] || [];
+            if (typeof images === 'string') {
+                images = [images];
+                carImages[carId] = images;
+            }
             
             let previewsHTML = '';
             if (images.length > 0) {
@@ -397,7 +402,12 @@
         gallery.innerHTML = '';
         filterList.forEach(car => {
             const carId = getCarId(car);
-            const images = carImages[carId] || [];
+            // Backward compatibility: convert old string format to array
+            let images = carImages[carId] || [];
+            if (typeof images === 'string') {
+                images = [images];
+                carImages[carId] = images;
+            }
             
             let imageHTML = '';
             if (images.length > 0) {
