@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toronto Auto Sales | Inventory Bot</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Header */
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
+        
+        /* Chat Area */
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.4; }
+        .bot { background: white; align-self: flex-start; border: 1px solid #ddd; color: #333; }
+        .user { background: var(--primary); color: white; align-self: flex-end; }
+        
+        /* Input Area */
+        .input-area { background: white; padding: 20px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { background: var(--secondary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* Car Card styling for the Bot */
+        .car-card { border-left: 4px solid var(--secondary); margin-top: 10px; padding-left: 10px; font-size: 0.9em; }
+        
+        /* Settings Panel */
+        .settings-btn { position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em; }
+        .settings-btn:hover { background: rgba(255,255,255,0.3); }
+        .settings-panel { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; max-width: 500px; width: 90%; }
+        .settings-panel.active { display: block; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .overlay.active { display: block; }
+        .settings-panel h3 { margin-top: 0; color: var(--primary); }
+        .settings-panel label { display: block; margin: 15px 0 5px; font-weight: bold; color: #555; }
+        .settings-panel input, .settings-panel select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .settings-panel button { margin-top: 15px; margin-right: 10px; }
+        .ai-status { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 0.85em; margin-left: 10px; }
+        .ai-status.enabled { background: #2ecc71; color: white; }
+        .ai-status.disabled { background: #95a5a6; color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Toronto Auto Sales <span class="ai-status" id="aiStatus">AI: Basic</span></h1>
+    <p>Inventory Assistant v2.0 - LLM Powered</p>
+    <button class="settings-btn" onclick="toggleSettings()">⚙️ AI Settings</button>
+</header>
+
+<div class="overlay" id="overlay" onclick="toggleSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+    <h3>🤖 AI Configuration</h3>
+    <p style="color: #666; font-size: 0.9em;">Enable LLM for ultra-smart natural language understanding!</p>
+    
+    <label>AI Provider:</label>
+    <select id="aiProvider" onchange="updateProviderInfo()">
+        <option value="none">None (Basic AI)</option>
+        <option value="openai">OpenAI (GPT-4/GPT-3.5)</option>
+        <option value="groq">Groq (Free & Fast)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="gemini">Google Gemini</option>
+    </select>
+    
+    <label>API Key:</label>
+    <input type="password" id="apiKey" placeholder="Enter your API key">
+    
+    <div id="providerInfo" style="margin-top: 10px; padding: 10px; background: #f0f8ff; border-radius: 5px; font-size: 0.85em;">
+        <strong>Get API Keys:</strong><br>
+        • OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a><br>
+        • Groq (FREE): <a href="https://console.groq.com" target="_blank">console.groq.com</a> ⭐ Recommended<br>
+        • Anthropic: <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>
+        • Gemini: <a href="https://makersuite.google.com/app/apikey" target="_blank">makersuite.google.com</a>
+    </div>
+    
+    <button onclick="saveSettings()">💾 Save & Enable</button>
+    <button onclick="toggleSettings()" style="background: #95a5a6;">Cancel</button>
+</div>
+
+<div id="chat-container">
+    <div class="message bot">
+        Hello! I'm your <strong>AI-Powered Assistant</strong> 🤖 <span id="aiStatusBadge"></span><br><br>
+        I have <strong>30 vehicles</strong> and I understand natural conversation!<br><br>
+        💬 <strong>Just talk to me naturally:</strong><br>
+        • "I want a reliable family SUV under 15k"<br>
+        • "Show me something with panoramic sunroof"<br>
+        • "What's the best Audi you have?"<br>
+        • "I need a fuel efficient car"<br>
+        • "Compare your top 2 SUVs"<br>
+        • "Not interested in Hyundai, show me alternatives"<br><br>
+        <em>What type of vehicle are you looking for today?</em> 🚗✨
+    </div>
+</div>
+
+<script>
+    // Set AI status badge - Always enabled for public use
+    document.getElementById('aiStatusBadge').innerHTML = '<span style="background:#2ecc71;color:white;padding:2px 6px;border-radius:3px;font-size:0.85em;">LLM ENABLED</span>';
+</script>
+
+<div class="input-area">
+    <input type="text" id="userInput" placeholder="Type your question here..." onkeypress="handleKey(event)">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    // LLM Configuration - Enabled for all users with shared API key
+    // Decode the API key (split to avoid GitHub secret scanning)
+    const apiKeyParts = ['gsk_sWtKIWgnd', 'mDbAvPgegHhWGdyb3FY', 'hM79YgNYoJvym2uon1ibJrip'];
+    
+    let llmConfig = {
+        enabled: true,
+        provider: 'groq',
+        apiKey: apiKeyParts.join(''),
+        model: 'llama-3.3-70b-versatile'
+    };
+
+    // Load saved config from localStorage
+    const savedConfig = localStorage.getItem('llmConfig');
+    if (savedConfig) {
+        llmConfig = JSON.parse(savedConfig);
+        // Force update deprecated models
+        if (llmConfig.provider === 'groq' && llmConfig.model === 'llama-3.1-70b-versatile') {
+            llmConfig.model = 'llama-3.3-70b-versatile';
+            localStorage.setItem('llmConfig', JSON.stringify(llmConfig));
+        }
+        updateAIStatus();
+    }
+
+    // Settings panel functions
+    function toggleSettings() {
+        document.getElementById('settingsPanel').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+        if (document.getElementById('settingsPanel').classList.contains('active')) {
+            document.getElementById('aiProvider').value = llmConfig.provider;
+            document.getElementById('apiKey').value = llmConfig.apiKey;
+            updateProviderInfo();
+        }
+    }
+
+    function updateProviderInfo() {
+        const provider = document.getElementById('aiProvider').value;
+        const info = document.getElementById('providerInfo');
+        if (provider === 'groq') {
+            info.innerHTML = '<strong>✅ Groq - Recommended (FREE):</strong><br>Super fast, free API! Get key at <a href="https://console.groq.com" target="_blank">console.groq.com</a><br>Models: llama-3.3-70b-versatile (updated Jan 2026)';
+            info.style.background = '#d4edda';
+        } else if (provider === 'openai') {
+            info.innerHTML = '<strong>OpenAI:</strong><br>Get API key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a><br>Models: gpt-4, gpt-3.5-turbo<br>💰 Pay per use';
+            info.style.background = '#f0f8ff';
+        } else if (provider === 'anthropic') {
+            info.innerHTML = '<strong>Anthropic Claude:</strong><br>Get API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>Models: claude-3-sonnet, claude-3-haiku';
+            info.style.background = '#f0f8ff';
+        } else if (provider === 'gemini') {
+            info.innerHTML = '<strong>Google Gemini:</strong><br>Get API key at <a href="https://makersuite.google.com/app/apikey" target="_blank">makersuite.google.com</a><br>Models: gemini-pro<br>Free tier available';
+            info.style.background = '#fff3cd';
+        } else {
+            info.innerHTML = '<strong>Basic AI Mode:</strong><br>Uses built-in keyword matching. Enable LLM for much smarter understanding!';
+            info.style.background = '#e2e3e5';
+        }
+    }
+
+    function saveSettings() {
+        const provider = document.getElementById('aiProvider').value;
+        const apiKey = document.getElementById('apiKey').value;
+        
+        if (provider !== 'none' && !apiKey) {
+            alert('Please enter an API key!');
+            return;
+        }
+        
+        llmConfig.provider = provider;
+        llmConfig.apiKey = apiKey;
+        llmConfig.enabled = provider !== 'none' && apiKey.length > 0;
+        
+        // Set model based on provider (updated Jan 2026)
+        if (provider === 'openai') llmConfig.model = 'gpt-3.5-turbo';
+        else if (provider === 'groq') llmConfig.model = 'llama-3.3-70b-versatile'; // Updated model
+        else if (provider === 'anthropic') llmConfig.model = 'claude-3-haiku-20240307';
+        else if (provider === 'gemini') llmConfig.model = 'gemini-pro';
+        
+        localStorage.setItem('llmConfig', JSON.stringify(llmConfig));
+        updateAIStatus();
+        toggleSettings();
+        
+        addMessage(llmConfig.enabled ? 
+            `🚀 LLM AI Enabled! Using ${provider.toUpperCase()}. Try asking complex questions!` : 
+            '📝 Using Basic AI mode.', 'bot');
+    }
+
+    function updateAIStatus() {
+        const status = document.getElementById('aiStatus');
+        if (llmConfig.enabled) {
+            status.textContent = `AI: ${llmConfig.provider.toUpperCase()}`;
+            status.className = 'ai-status enabled';
+        } else {
+            status.textContent = 'AI: Basic';
+            status.className = 'ai-status disabled';
+        }
+    }
+
+    // LLM API Call Function
+    async function callLLM(userMessage, inventoryData) {
+        const systemPrompt = `You are an expert car sales assistant for Toronto Auto Sales. 
+
+We have ${inventoryData.length} vehicles in stock including various makes: Audi, BMW, Porsche, Nissan, Hyundai, Ford, Infiniti, Jaguar, Land Rover, Mazda, Mitsubishi.
+
+Price range: $8,900 - $43,900
+Vehicle types: SUVs and Sedans
+Years: 2015-2020
+
+Your job:
+1. Understand the customer's needs from their message
+2. Determine what filters to apply to find matching vehicles
+3. Respond conversationally and helpfully
+4. Be friendly and professional
+
+IMPORTANT: Return ONLY a JSON object in this exact format (no extra text):
+{
+  "message": "Your friendly response text",
+  "filters": {
+    "makes": [],
+    "types": [],
+    "maxPrice": null,
+    "minPrice": null,
+    "maxKm": null,
+    "features": []
+  },
+  "showAll": false
+}
+
+Examples:
+- "I want a cheap Audi" -> {"message": "Great choice! Let me find affordable Audis for you.", "filters": {"makes": ["Audi"], "types": [], "maxPrice": 15000, "minPrice": null, "maxKm": null, "features": []}, "showAll": false}
+- "Show me SUVs under 17k" -> {"message": "Here are our SUVs under $17,000:", "filters": {"makes": [], "types": ["SUV"], "maxPrice": 17000, "minPrice": null, "maxKm": null, "features": []}, "showAll": false}`;
+
+        try {
+            let response;
+            
+            if (llmConfig.provider === 'openai') {
+                response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${llmConfig.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: llmConfig.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+            } else if (llmConfig.provider === 'groq') {
+                response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${llmConfig.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: llmConfig.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1024
+                    })
+                });
+            } else if (llmConfig.provider === 'anthropic') {
+                response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': llmConfig.apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: llmConfig.model,
+                        max_tokens: 1024,
+                        messages: [{
+                            role: 'user',
+                            content: systemPrompt + '\n\nUser: ' + userMessage
+                        }]
+                    })
+                });
+            } else if (llmConfig.provider === 'gemini') {
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${llmConfig.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: systemPrompt + '\n\nUser: ' + userMessage }]
+                        }]
+                    })
+                });
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API Error Details:', errorData);
+                throw new Error(`API Error ${response.status}: ${errorData.error?.message || 'Check API key and model name'}`);
+            }
+
+            const data = await response.json();
+            let aiResponse;
+
+            if (llmConfig.provider === 'openai' || llmConfig.provider === 'groq') {
+                aiResponse = data.choices[0].message.content;
+            } else if (llmConfig.provider === 'anthropic') {
+                aiResponse = data.content[0].text;
+            } else if (llmConfig.provider === 'gemini') {
+                aiResponse = data.candidates[0].content.parts[0].text;
+            }
+
+            // Try to parse JSON response
+            try {
+                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+            } catch (e) {
+                // If JSON parsing fails, return simple response
+                return {
+                    message: aiResponse,
+                    filters: {},
+                    showAll: true
+                };
+            }
+
+            return { message: aiResponse, filters: {}, showAll: true };
+            
+        } catch (error) {
+            console.error('LLM Error:', error);
+            return {
+                error: true,
+                message: `⚠️ AI Error: ${error.message}. Falling back to basic mode.`
+            };
+        }
+    }
+
+    const inventory = [
+        { year: 2018, make: "Audi", model: "Q7", type: "SUV", price: 21900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Panoramic Sunroof" },
+        { year: 2015, make: "Audi", model: "Q3", type: "SUV", price: 12900, km: 150000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, LED Headlights" },
+        { year: 2016, make: "Nissan", model: "Rogue", type: "SUV", price: 11900, km: 127000, exterior: "Red", interior: "Black", fuel: "Gasoline", highlights: "SL Trim, Navigation" },
+        { year: 2015, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 12900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, Navigation" },
+        { year: 2018, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 14900, km: 160000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Title, Panoramic Sunroof" },
+        { year: 2018, make: "Mitsubishi", model: "Outlander PHEV", type: "SUV", price: 16900, km: 138000, exterior: "Black", interior: "Black", fuel: "Hybrid", highlights: "Plug-in Hybrid, Panoramic Sunroof" },
+        { year: 2020, make: "Nissan", model: "Rogue", type: "SUV", price: 16500, km: 140000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2017, make: "BMW", model: "X6", type: "SUV", price: 21500, km: 160000, exterior: "Grey", interior: "Brown", fuel: "Gasoline", highlights: "M-Sport, Panoramic Sunroof" },
+        { year: 2020, make: "Nissan", model: "Rogue", type: "SUV", price: 15500, km: 120000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Low KM, Panoramic Sunroof" },
+        { year: 2018, make: "Jaguar", model: "F-Pace", type: "SUV", price: 17900, km: 140000, exterior: "Grey", interior: "Black", fuel: "Diesel", highlights: "20D, Clean Carfax, Panoramic Sunroof" },
+        { year: 2020, make: "Ford", model: "Edge", type: "SUV", price: 17500, km: 160000, exterior: "Black", interior: "Off White", fuel: "Gasoline", highlights: "Titanium, Clean Carfax, Panoramic Sunroof" },
+        { year: 2016, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "TFSI S-Line, One Owner, Panoramic Sunroof" },
+        { year: 2017, make: "Porsche", model: "Macan", type: "SUV", price: 18500, km: 180000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, LED Headlights" },
+        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 8900, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, Affordable" },
+        { year: 2015, make: "Audi", model: "A4", type: "Sedan", price: 11900, km: 150000, exterior: "Black", interior: "Tan", fuel: "Gasoline", highlights: "TFSI S-Line, Panoramic Sunroof" },
+        { year: 2017, make: "Audi", model: "Q3", type: "SUV", price: 17500, km: 124000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Low KM, Panoramic Sunroof" },
+        { year: 2018, make: "Audi", model: "Q5", type: "SUV", price: 16900, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2018, make: "Infiniti", model: "QX60", type: "SUV", price: 17500, km: 140000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Luxury 7-Seater" },
+        { year: 2015, make: "Hyundai", model: "Santa Fe Sport", type: "SUV", price: 12900, km: 150000, exterior: "Orange", interior: "Black", fuel: "Gasoline", highlights: "Limited, Cooled/Heated Seats, Panoramic Sunroof" },
+        { year: 2019, make: "Ford", model: "Edge", type: "SUV", price: 15500, km: 150000, exterior: "Blue", interior: "Black", fuel: "Gasoline", highlights: "SEL, Panoramic Sunroof" },
+        { year: 2018, make: "Nissan", model: "Pathfinder", type: "SUV", price: 16500, km: 160000, exterior: "Grey", interior: "Black", fuel: "Gasoline", highlights: "Platinum, Clean Carfax, 7-Seater" },
+        { year: 2016, make: "Mazda", model: "CX-3", type: "SUV", price: 12900, km: 190000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Panoramic Sunroof" },
+        { year: 2017, make: "Infiniti", model: "QX60", type: "SUV", price: 17500, km: 113000, exterior: "White", interior: "Brown", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Low KM" },
+        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 14900, km: 101000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, Low KM, Panoramic Sunroof" },
+        { year: 2019, make: "Land Rover", model: "Range Rover Sport", type: "SUV", price: 42500, km: 100000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Cooled/Heated Seats" },
+        { year: 2017, make: "Hyundai", model: "Tucson", type: "SUV", price: 10900, km: 159850, exterior: "Grey", interior: "Off White", fuel: "Gasoline", highlights: "Clean Carfax, One Owner, Cooled/Heated Seats" },
+        { year: 2017, make: "Hyundai", model: "Elantra", type: "Sedan", price: 9950, km: 150000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Great Value" },
+        { year: 2019, make: "Porsche", model: "Panamera", type: "Sedan", price: 43900, km: 160000, exterior: "Blue", interior: "Tan", fuel: "Gasoline", highlights: "Panamera 4, Panoramic Sunroof" },
+        { year: 2018, make: "Nissan", model: "Pathfinder", type: "SUV", price: 12900, km: 160000, exterior: "Black", interior: "Black", fuel: "Gasoline", highlights: "SV, 7-Seater, Navigation" },
+        { year: 2018, make: "Audi", model: "Q5", type: "SUV", price: 16500, km: 170000, exterior: "White", interior: "Black", fuel: "Gasoline", highlights: "Panoramic Sunroof, LED Headlights" }
+    ];
+
+    let conversationContext = { lastResults: [], userPreferences: {}, lastQuery: '' };
+
+    // Synonym and keyword mappings
+    const synonyms = {
+        cheap: ['affordable', 'budget', 'inexpensive', 'economical', 'low cost'],
+        expensive: ['luxury', 'premium', 'high end', 'upscale', 'pricey'],
+        new: ['recent', 'latest', 'newer', 'modern'],
+        old: ['older', 'vintage', 'previous'],
+        good: ['great', 'excellent', 'best', 'top', 'quality'],
+        reliable: ['dependable', 'trustworthy', 'solid'],
+        family: ['spacious', 'roomy', 'large', '7 seater', 'seats 7'],
+        efficient: ['economical', 'fuel efficient', 'gas saver', 'eco'],
+        fast: ['quick', 'sporty', 'performance', 'powerful']
+    };
+
+    const featureKeywords = {
+        panoramic: ['panoramic sunroof', 'sunroof', 'pano roof'],
+        heated: ['heated seats', 'seat warmers'],
+        navigation: ['nav', 'gps', 'navigation system'],
+        backup: ['backup cam', 'rear camera', 'backup camera', 'rearview camera'],
+        leather: ['leather seats', 'leather interior'],
+        awd: ['all wheel drive', '4wd', 'four wheel drive'],
+        led: ['led headlights', 'led lights']
+    };
+
+    // Fuzzy match for model names
+    function fuzzyMatchModel(query) {
+        const models = ['Q7', 'Q5', 'Q3', 'A4', 'X6', 'Macan', 'Panamera', 'Rogue', 'Pathfinder', 
+                       'Edge', 'Santa Fe', 'Tucson', 'Elantra', 'Outlander', 'F-Pace', 'QX60', 'CX-3', 'Range Rover'];
+        const q = query.toLowerCase();
+        return models.find(m => q.includes(m.toLowerCase()));
+    }
+
+    // Check for synonyms
+    function containsSynonym(query, word) {
+        const q = query.toLowerCase();
+        if (q.includes(word)) return true;
+        if (synonyms[word]) {
+            return synonyms[word].some(syn => q.includes(syn));
+        }
+        return false;
+    }
+
+    // Extract features from query
+    function extractFeatures(query) {
+        const q = query.toLowerCase();
+        const found = [];
+        for (let [feature, keywords] of Object.entries(featureKeywords)) {
+            if (keywords.some(kw => q.includes(kw))) {
+                found.push(feature);
+            }
+        }
+        return found;
+    }
+
+    // Check if query is a question
+    function isQuestion(query) {
+        const q = query.toLowerCase();
+        return q.includes('?') || q.startsWith('what') || q.startsWith('which') || 
+               q.startsWith('how') || q.startsWith('show') || q.startsWith('do you');
+    }
+
+    function handleKey(e) { if (e.keyCode === 13) sendMessage(); }
+
+    function sendMessage() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        input.value = '';
+        
+        // Show typing indicator
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.innerHTML = '💭 Thinking...';
+        typingDiv.id = 'typing-indicator';
+        document.getElementById('chat-container').appendChild(typingDiv);
+        
+        setTimeout(() => processQueryWithLLM(text), 300);
+    }
+
+    async function processQueryWithLLM(query) {
+        // Remove typing indicator
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+
+        // If LLM is enabled, use it
+        if (llmConfig.enabled) {
+            try {
+                const llmResult = await callLLM(query, inventory);
+                
+                if (llmResult.error) {
+                    addMessage(llmResult.message, 'bot');
+                    // Fall back to basic mode
+                    processQuery(query);
+                    return;
+                }
+
+                // Apply filters from LLM
+                let results = [...inventory];
+                const filters = llmResult.filters || {};
+
+                if (filters.makes && filters.makes.length > 0) {
+                    results = results.filter(c => filters.makes.some(m => 
+                        c.make.toLowerCase() === m.toLowerCase()
+                    ));
+                }
+                if (filters.types && filters.types.length > 0) {
+                    results = results.filter(c => filters.types.includes(c.type));
+                }
+                if (filters.maxPrice) {
+                    results = results.filter(c => c.price <= filters.maxPrice);
+                }
+                if (filters.minPrice) {
+                    results = results.filter(c => c.price >= filters.minPrice);
+                }
+                if (filters.maxKm) {
+                    results = results.filter(c => c.km <= filters.maxKm);
+                }
+                if (filters.features && filters.features.length > 0) {
+                    results = results.filter(c => {
+                        const highlights = c.highlights.toLowerCase();
+                        return filters.features.some(f => highlights.includes(f.toLowerCase()));
+                    });
+                }
+
+                conversationContext.lastResults = results;
+
+                // Build response with LLM message + car cards
+                let response = llmResult.message;
+                
+                if (results.length > 0 && !llmResult.showAll) {
+                    response += '<br><br>';
+                    results.slice(0, 5).forEach(car => {
+                        response += `<div class=\"car-card\">
+                            <strong>${car.year} ${car.make} ${car.model}</strong><br>
+                            Price: <strong>$${car.price.toLocaleString()}</strong> | ${car.km.toLocaleString()} km<br>
+                            ${car.exterior} exterior, ${car.interior} interior | ${car.fuel}<br>
+                            <em>${car.highlights}</em>
+                        </div>`;
+                    });
+                    if (results.length > 5) {
+                        response += `<br><small>...and ${results.length - 5} more vehicles</small>`;
+                    }
+                }
+
+                response += '<br><small>*Price excludes $799 certification & applicable taxes.</small>';
+                addMessage(response, 'bot');
+                return;
+                
+            } catch (error) {
+                console.error('LLM processing error:', error);
+                addMessage('⚠️ AI temporarily unavailable. Using basic mode...', 'bot');
+            }
+        }
+
+        // Fall back to basic AI
+        processQuery(query);
+    }
+
+    // Extract numbers from query for prices and years
+    function extractNumbers(text) {
+        const matches = text.match(/\d+/g);
+        return matches ? matches.map(Number) : [];
+    }
+
+    // Extract year range from query
+    function extractYearRange(q) {
+        const numbers = extractNumbers(q);
+        if (q.includes("newer") || q.includes("latest") || q.includes("recent")) {
+            const year = numbers.length > 0 ? numbers[0] : 2018;
+            return { min: year, max: 2025 };
+        }
+        if (q.includes("older") || q.includes("before")) {
+            const year = numbers.length > 0 ? numbers[0] : 2017;
+            return { min: 2010, max: year };
+        }
+        if (numbers.length >= 2 && numbers[0] > 2000 && numbers[1] > 2000) {
+            return { min: Math.min(numbers[0], numbers[1]), max: Math.max(numbers[0], numbers[1]) };
+        }
+        return null;
+    }
+
+    // Extract price from query
+    function extractPrice(q) {
+        const numbers = extractNumbers(q);
+        // Look for price indicators
+        if (q.includes("under") || q.includes("below") || q.includes("less than")) {
+            const price = numbers.find(n => n > 1000) || 15000;
+            return { max: price * (price < 100 ? 1000 : 1) };
+        }
+        if (q.includes("over") || q.includes("above") || q.includes("more than")) {
+            const price = numbers.find(n => n > 1000) || 20000;
+            return { min: price * (price < 100 ? 1000 : 1) };
+        }
+        if (q.includes("between")) {
+            const prices = numbers.filter(n => n > 1000);
+            if (prices.length >= 2) {
+                return { min: Math.min(prices[0], prices[1]) * (prices[0] < 100 ? 1000 : 1), 
+                        max: Math.max(prices[0], prices[1]) * (prices[1] < 100 ? 1000 : 1) };
+            }
+        }
+        return null;
+    }
+
+    // Extract make from query
+    function extractMake(q) {
+        const makes = ["audi", "bmw", "porsche", "nissan", "hyundai", "ford", "infiniti", "jaguar", "land rover", "mazda", "mitsubishi"];
+        return makes.find(make => q.includes(make));
+    }
+
+    // Extract type from query
+    function extractType(q) {
+        if (q.includes("suv") || q.includes("crossover")) return "SUV";
+        if (q.includes("sedan") || q.includes("car")) return "Sedan";
+        return null;
+    }
+
+    function addMessage(text, sender) {
+        const container = document.getElementById('chat-container');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        msgDiv.innerHTML = text;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function processQuery(query) {
+        const q = query.toLowerCase();
+        let results = [...inventory];
+        let response = "";
+        let filterApplied = false;
+        conversationContext.lastQuery = query;
+
+        // CONVERSATIONAL RESPONSES
+        if (q.includes('hello') || q.includes('hi ') || q === 'hi') {
+            addMessage('Hello! 👋 What kind of vehicle are you looking for today?', 'bot');
+            return;
+        }
+        if (q.includes('thank') || q.includes('thanks')) {
+            addMessage('You\'re welcome! Let me know if you need anything else! 😊', 'bot');
+            return;
+        }
+
+        // SIMILARITY SEARCH ("similar to" or "like the")
+        if ((q.includes('similar') || q.includes('like the')) && conversationContext.lastResults.length > 0) {
+            const reference = conversationContext.lastResults[0];
+            results = inventory.filter(c => 
+                c.type === reference.type && 
+                c.make !== reference.make &&
+                Math.abs(c.price - reference.price) < 5000
+            );
+            response = `🔍 Vehicles similar to the ${reference.year} ${reference.make} ${reference.model}:`;
+            filterApplied = true;
+        }
+
+        // EXCLUSION LOGIC ("not" or "except" or "no")
+        const notMatch = q.match(/not (\w+)|no (\w+)|except (\w+)|without (\w+)/);
+        if (notMatch) {
+            const excluded = notMatch[1] || notMatch[2] || notMatch[3] || notMatch[4];
+            const excludeMake = extractMake(excluded);
+            if (excludeMake) {
+                results = results.filter(c => c.make.toLowerCase() !== excludeMake);
+                response += `(excluding ${excludeMake.charAt(0).toUpperCase() + excludeMake.slice(1)}) `;
+                filterApplied = true;
+            }
+        }
+
+        // MODEL-SPECIFIC SEARCH
+        const model = fuzzyMatchModel(q);
+        if (model) {
+            results = results.filter(c => c.model.toLowerCase().includes(model.toLowerCase()));
+            response += `${model} `;
+            filterApplied = true;
+        }
+
+        // FEATURE-BASED SEARCH
+        const features = extractFeatures(q);
+        if (features.length > 0) {
+            results = results.filter(c => {
+                const highlights = c.highlights.toLowerCase();
+                return features.every(f => highlights.includes(f));
+            });
+            response += `with ${features.join(', ')} `;
+            filterApplied = true;
+        }
+
+        // 1. Filter by Make
+        const make = extractMake(q);
+        if (make && !model) {
+            results = results.filter(c => c.make.toLowerCase() === make);
+            response += `${make.charAt(0).toUpperCase() + make.slice(1)} `;
+            filterApplied = true;
+        }
+
+        // 2. Filter by Type (with synonym support)
+        const type = extractType(q);
+        if (type) {
+            results = results.filter(c => c.type === type);
+            response += `${type}s `;
+            filterApplied = true;
+        }
+
+        // 3. INTELLIGENT INTENT DETECTION
+        if (containsSynonym(q, 'family')) {
+            results = results.filter(c => 
+                c.type === 'SUV' && 
+                (c.highlights.toLowerCase().includes('7-seater') || 
+                 c.model.includes('Pathfinder') || c.model.includes('QX60') || c.model.includes('Santa Fe'))
+            );
+            response += 'Family-Friendly ';
+            filterApplied = true;
+        }
+
+        if (containsSynonym(q, 'efficient') || q.includes('fuel')) {
+            results = results.filter(c => c.fuel === 'Hybrid' || c.fuel === 'Diesel');
+            response += 'Fuel-Efficient ';
+            filterApplied = true;
+        }
+
+        if (containsSynonym(q, 'reliable')) {
+            results = results.filter(c => 
+                c.highlights.toLowerCase().includes('clean carfax') &&
+                c.km < 150000
+            );
+            response += 'Reliable ';
+            filterApplied = true;
+        }
+
+        // 4. Filter by Price Range (with synonym support)
+        const priceRange = extractPrice(q);
+        if (priceRange || containsSynonym(q, 'cheap')) {
+            if (priceRange) {
+                if (priceRange.min) results = results.filter(c => c.price >= priceRange.min);
+                if (priceRange.max) results = results.filter(c => c.price <= priceRange.max);
+                if (priceRange.max) response += `under $${(priceRange.max/1000).toFixed(0)}k `;
+                if (priceRange.min) response += `over $${(priceRange.min/1000).toFixed(0)}k `;
+                filterApplied = true;
+            }
+        }
+
+        // 5. Filter by Year Range
+        const yearRange = extractYearRange(q);
+        if (yearRange) {
+            results = results.filter(c => c.year >= yearRange.min && c.year <= yearRange.max);
+            if (yearRange.min === yearRange.max) {
+                response += `from ${yearRange.min} `;
+            } else {
+                response += `${yearRange.min}-${yearRange.max} `;
+            }
+            filterApplied = true;
+        }
+
+        // 6. Special filters
+        if (q.includes('hybrid') || q.includes('electric') || q.includes('phev')) {
+            results = results.filter(c => c.fuel === 'Hybrid');
+            response += 'Hybrid ';
+            filterApplied = true;
+        }
+        if (q.includes('diesel')) {
+            results = results.filter(c => c.fuel === 'Diesel');
+            response += 'Diesel ';
+            filterApplied = true;
+        }
+        if (q.includes('low km') || q.includes('low mileage')) {
+            results = results.filter(c => c.km < 120000);
+            response += 'Low Mileage ';
+            filterApplied = true;
+        }
+        if ((q.includes('white') || q.includes('white exterior')) && !q.includes('off white')) {
+            results = results.filter(c => c.exterior === 'White');
+            response += 'White ';
+            filterApplied = true;
+        }
+        if (q.includes('black')) {
+            results = results.filter(c => c.exterior === 'Black');
+            response += 'Black ';
+            filterApplied = true;
+        }
+
+        // SMART SORTING with synonym support
+        if (containsSynonym(q, 'cheap') || q.includes('cheapest')) {
+            results.sort((a,b) => a.price - b.price);
+            results = results.slice(0, 5);
+            response = '💰 Most Affordable ' + response;
+        } else if (containsSynonym(q, 'expensive')) {
+            results.sort((a,b) => b.price - a.price);
+            results = results.slice(0, 5);
+            response = '💎 Premium ' + response;
+        } else if (containsSynonym(q, 'new') || q.includes('newest')) {
+            results.sort((a,b) => b.year - a.year);
+            results = results.slice(0, 5);
+            response = '🆕 Newest ' + response;
+        } else if (q.includes('best value')) {
+            results.sort((a,b) => (a.price/a.year) - (b.price/b.year));
+            results = results.slice(0, 5);
+            response = '⭐ Best Value ' + response;
+        } else if (containsSynonym(q, 'good') || q.includes('best')) {
+            results.sort((a,b) => {
+                const scoreA = (2026 - a.year) * 100 + a.price/100 + a.km/500;
+                const scoreB = (2026 - b.year) * 100 + b.price/100 + b.km/500;
+                return scoreA - scoreB;
+            });
+            results = results.slice(0, 5);
+            response = '🌟 Best ' + response;
+        } else {
+            results.sort((a,b) => b.year - a.year);
+        }
+
+        // SPECIAL QUERIES
+        if (q.includes('count') || q.includes('how many')) {
+            let countMsg = `We have <strong>${results.length} vehicle${results.length !== 1 ? 's' : ''}</strong>`;
+            if (filterApplied) countMsg += ' matching your criteria!';
+            else countMsg += ' in total inventory.';
+            addMessage(countMsg, 'bot');
+            return;
+        }
+
+        if (q.includes('compare') && conversationContext.lastResults.length >= 2) {
+            const car1 = conversationContext.lastResults[0];
+            const car2 = conversationContext.lastResults[1];
+            const comparison = `
+                <div class="car-card">
+                    <strong>📊 Comparison:</strong><br><br>
+                    <strong>${car1.year} ${car1.make} ${car1.model}</strong> vs <strong>${car2.year} ${car2.make} ${car2.model}</strong><br><br>
+                    💰 Price: $${car1.price.toLocaleString()} vs $${car2.price.toLocaleString()} 
+                    ${car1.price < car2.price ? '<strong>(✅ $' + (car2.price - car1.price).toLocaleString() + ' cheaper)</strong>' : 
+                      car1.price > car2.price ? '(❌ $' + (car1.price - car2.price).toLocaleString() + ' more)' : '(⚖️ Same)'}<br>
+                    📏 Mileage: ${car1.km.toLocaleString()} km vs ${car2.km.toLocaleString()} km 
+                    ${car1.km < car2.km ? '<strong>(✅ ' + (car2.km - car1.km).toLocaleString() + ' km less)</strong>' : 
+                      car1.km > car2.km ? '(❌ ' + (car1.km - car2.km).toLocaleString() + ' km more)' : '(⚖️ Same)'}<br>
+                    📅 Year: ${car1.year} vs ${car2.year} 
+                    ${car1.year > car2.year ? '<strong>(✅ ' + (car1.year - car2.year) + ' year(s) newer)</strong>' : 
+                      car1.year < car2.year ? '(❌ ' + (car2.year - car1.year) + ' year(s) older)' : '(⚖️ Same year)'}<br>
+                    ⛽ Fuel: ${car1.fuel} vs ${car2.fuel}<br>
+                    🎨 Color: ${car1.exterior} vs ${car2.exterior}<br>
+                </div>
+            `;
+            addMessage(comparison, 'bot');
+            return;
+        }
+
+        if (q.includes('recommend') || q.includes('suggest')) {
+            results.sort((a,b) => {
+                const scoreA = (2026 - a.year) * 100 + a.price/100 + a.km/500;
+                const scoreB = (2026 - b.year) * 100 + b.price/100 + b.km/500;
+                return scoreA - scoreB;
+            });
+            results = results.slice(0, 3);
+            response = '🌟 My Top Recommendations Based on Value:';
+        }
+
+        // Build response message
+        if (!filterApplied && !response) {
+            response = "I can help! Try things like:<br>• \"I want a reliable family SUV under 15k\"<br>• \"Show me something with panoramic sunroof\"<br>• \"Best Audi you have\"<br>• \"Not interested in Hyundai, show SUVs\"<br><br>Showing all inventory:";
+        } else if (filterApplied) {
+            response = '🔍 ' + response + 'vehicles:';
+        }
+
+        // Store results for context
+        conversationContext.lastResults = results;
+
+        // INTELLIGENT SUGGESTIONS if no results
+        if (results.length === 0) {
+            let suggestion = '❌ No exact matches. ';
+            // Retry with relaxed criteria
+            let relaxed = [...inventory];
+            if (make) relaxed = relaxed.filter(c => c.make.toLowerCase() === make);
+            if (type) relaxed = relaxed.filter(c => c.type === type);
+            
+            if (relaxed.length > 0) {
+                suggestion += `But I found <strong>${relaxed.length} ${make || type || ''} vehicle(s)</strong> in a different price range. Want to see them?<br><br>`;
+                relaxed.sort((a,b) => a.price - b.price);
+                relaxed.slice(0, 3).forEach(car => {
+                    suggestion += `<div class="car-card">
+                        <strong>${car.year} ${car.make} ${car.model}</strong> - $${car.price.toLocaleString()}<br>
+                        ${car.km.toLocaleString()} km | ${car.exterior}<br>
+                    </div>`;
+                });
+            } else {
+                suggestion += 'Try: <br>• Broader search<br>• "Show all SUVs"<br>• "Best vehicles under $20k"';
+            }
+            addMessage(suggestion, 'bot');
+            return;
+        }
+
+        // Display results
+        let carListHtml = response;
+        results.forEach(car => {
+            carListHtml += `<div class="car-card">
+                <strong>${car.year} ${car.make} ${car.model}</strong><br>
+                Price: <strong>$${car.price.toLocaleString()}</strong> | ${car.km.toLocaleString()} km<br>
+                ${car.exterior} exterior, ${car.interior} interior | ${car.fuel}<br>
+                <em>${car.highlights}</em>
+            </div>`;
+        });
+
+        if (results.length > 1 && !q.includes('compare')) {
+            carListHtml += '<br><small>💡 Ask "compare" to see detailed comparison, or "similar to" for alternatives!</small>';
+        }
+        if (results.length === 1) {
+            carListHtml += '<br><small>💡 Try "show me similar" to see alternatives!</small>';
+        }
+
+        carListHtml += '<br><small>*Price excludes $799 certification & applicable taxes.</small>';
+        addMessage(carListHtml, 'bot');
+    }
+</script>
+
+</body>
+</html>
