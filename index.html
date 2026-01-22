@@ -24,6 +24,15 @@
         .car-card-ui { border: 1px solid #eee; border-radius: 10px; overflow: hidden; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .car-card-ui:hover { transform: translateY(-5px); }
         .car-img-placeholder { height: 180px; background: #ddd; display: flex; align-items: center; justify-content: center; color: #888; font-weight: bold; }
+        .car-img-container { position: relative; height: 180px; overflow: hidden; }
+        .car-img-container img { width: 100%; height: 100%; object-fit: cover; }
+        .img-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 8px; cursor: pointer; font-size: 1.2rem; z-index: 5; }
+        .img-nav:hover { background: rgba(0,0,0,0.7); }
+        .img-nav.prev { left: 5px; }
+        .img-nav.next { right: 5px; }
+        .img-dots { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+        .img-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; }
+        .img-dot.active { background: white; }
         .car-info { padding: 15px; }
         .car-info h3 { margin: 0 0 10px 0; color: var(--primary); }
         .price-tag { color: var(--accent); font-size: 1.25rem; font-weight: bold; }
@@ -49,6 +58,10 @@
         .car-upload-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f9f9f9; }
         .car-upload-item h4 { margin: 0 0 10px 0; color: var(--primary); }
         .upload-preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 5px; margin-top: 10px; }
+        .upload-previews { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .upload-preview-item { position: relative; width: 100px; height: 100px; }
+        .upload-preview-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+        .remove-preview { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; }
         .file-input-wrapper { margin: 10px 0; }
         .file-input-wrapper input[type="file"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
@@ -138,8 +151,8 @@
 </div>
 
 <script>
-    // Image Storage System (uses localStorage)
-    let carImages = {};
+    // Image Storage System (uses localStorage) - supports multiple images per car
+    let carImages = {}; // Format: { carId: [url1, url2, url3, ...] }
     
     // Load saved images from localStorage
     const savedImages = localStorage.getItem('carImages');
@@ -172,45 +185,87 @@
         
         cars.forEach(car => {
             const carId = getCarId(car);
-            const hasImage = carImages[carId];
+            const images = carImages[carId] || [];
+            
+            let previewsHTML = '';
+            if (images.length > 0) {
+                previewsHTML = '<div class="upload-previews">';
+                images.forEach((img, idx) => {
+                    previewsHTML += `
+                        <div class="upload-preview-item">
+                            <img src="${img}">
+                            <button class="remove-preview" onclick="removeImageAtIndex('${carId}', ${idx})" title="Remove">×</button>
+                        </div>
+                    `;
+                });
+                previewsHTML += '</div>';
+            } else {
+                previewsHTML = '<p style="color: #999;">No images uploaded</p>';
+            }
             
             list.innerHTML += `
                 <div class="car-upload-item">
                     <h4>${car.year} ${car.make} ${car.model}</h4>
-                    <p style="color: #666; font-size: 0.9em;">$${car.price.toLocaleString()} | ${car.type}</p>
-                    ${hasImage ? `<img src="${carImages[carId]}" class="upload-preview" id="preview-${carId}">` : '<p style="color: #999;">No image uploaded</p>'}
+                    <p style="color: #666; font-size: 0.9em;">$${car.price.toLocaleString()} | ${car.type} | ${images.length} photo(s)</p>
+                    ${previewsHTML}
                     <div class="file-input-wrapper">
-                        <input type="file" accept="image/*" onchange="handleImageUpload(event, '${carId}')" id="upload-${carId}">
+                        <input type="file" accept="image/*" multiple onchange="handleImageUpload(event, '${carId}')" id="upload-${carId}">
+                        <small style="color: #666;">Select multiple images (Ctrl+Click or Cmd+Click)</small>
                     </div>
-                    ${hasImage ? `<button class="btn-remove" onclick="removeImage('${carId}')">Remove Image</button>` : ''}
                 </div>
             `;
         });
     }
 
     function handleImageUpload(event, carId) {
-        const file = event.target.files[0];
-        if (!file) return;
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
         
-        // Check file size (limit to 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Image too large! Please use an image under 2MB.');
-            return;
+        let processed = 0;
+        const totalFiles = files.length;
+        
+        if (!carImages[carId]) {
+            carImages[carId] = [];
         }
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            carImages[carId] = e.target.result;
+        files.forEach(file => {
+            // Check file size (limit to 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert(`${file.name} is too large! Please use images under 2MB.`);
+                processed++;
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                carImages[carId].push(e.target.result);
+                processed++;
+                
+                if (processed === totalFiles) {
+                    saveImages();
+                    renderAdminPanel();
+                    renderGallery(cars);
+                    alert(`✅ ${totalFiles} image(s) uploaded successfully!`);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function removeImageAtIndex(carId, index) {
+        if (confirm('Remove this image?')) {
+            carImages[carId].splice(index, 1);
+            if (carImages[carId].length === 0) {
+                delete carImages[carId];
+            }
             saveImages();
             renderAdminPanel();
-            renderGallery(cars); // Refresh gallery
-            alert('✅ Image uploaded successfully!');
-        };
-        reader.readAsDataURL(file);
+            renderGallery(cars);
+        }
     }
 
     function removeImage(carId) {
-        if (confirm('Remove this image?')) {
+        if (confirm('Remove all images for this vehicle?')) {
             delete carImages[carId];
             saveImages();
             renderAdminPanel();
@@ -233,10 +288,43 @@
     // if (savedImages) { carImages = JSON.parse(savedImages); }`;
         
         navigator.clipboard.writeText(exportCode).then(() => {
-            alert(`✅ Copied! ${imageCount} images exported.\n\nNow:\n1. Find lines 81-86 in your code\n2. Replace the carImages initialization code\n3. Save the file\n4. Images are now permanent!\n\n(Optional: Remove admin panel HTML/buttons after)`);
+            alert(`✅ Copied! ${imageCount} vehicles with images exported.\n\nNow:\n1. Find lines 81-86 in your code\n2. Replace the carImages initialization code\n3. Save the file\n4. Images are now permanent!\n\n(Optional: Remove admin panel HTML/buttons after)`);
             document.getElementById('exportInstructions').style.display = 'block';
         }).catch(() => {
             prompt('Copy this code and replace lines 81-86:', exportCode);
+        });
+    }
+
+    // Image Carousel Navigation
+    function changeImage(carId, direction) {
+        const container = document.getElementById(`img-${carId}`);
+        const img = container.querySelector('img');
+        const images = carImages[carId];
+        let current = parseInt(img.dataset.current);
+        
+        current = (current + direction + images.length) % images.length;
+        img.src = images[current];
+        img.dataset.current = current;
+        
+        // Update dots
+        const dots = container.querySelectorAll('.img-dot');
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === current);
+        });
+    }
+
+    function setImage(carId, index) {
+        const container = document.getElementById(`img-${carId}`);
+        const img = container.querySelector('img');
+        const images = carImages[carId];
+        
+        img.src = images[index];
+        img.dataset.current = index;
+        
+        // Update dots
+        const dots = container.querySelectorAll('.img-dot');
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
         });
     }
 
@@ -313,14 +401,29 @@
         gallery.innerHTML = '';
         filterList.forEach(car => {
             const carId = getCarId(car);
-            const imageUrl = carImages[carId];
+            const images = carImages[carId] || [];
+            
+            let imageHTML = '';
+            if (images.length > 0) {
+                imageHTML = `
+                    <div class="car-img-container" id="img-${carId}">
+                        <img src="${images[0]}" data-current="0">
+                        ${images.length > 1 ? `
+                            <button class="img-nav prev" onclick="changeImage('${carId}', -1)">‹</button>
+                            <button class="img-nav next" onclick="changeImage('${carId}', 1)">›</button>
+                            <div class="img-dots">
+                                ${images.map((_, i) => `<span class="img-dot ${i === 0 ? 'active' : ''}" onclick="setImage('${carId}', ${i})"></span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                imageHTML = `<div class="car-img-placeholder">${car.make} ${car.model} Image</div>`;
+            }
             
             gallery.innerHTML += `
                 <div class="car-card-ui">
-                    ${imageUrl 
-                        ? `<img src="${imageUrl}" style="width: 100%; height: 180px; object-fit: cover;">` 
-                        : `<div class="car-img-placeholder">${car.make} ${car.model} Image</div>`
-                    }
+                    ${imageHTML}
                     <div class="car-info">
                         <span class="tag">${car.year}</span><span class="tag">${car.type}</span>
                         <h3>${car.make} ${car.model}</h3>
